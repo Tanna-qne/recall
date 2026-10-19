@@ -135,8 +135,8 @@ def skeleton(keep: list, back: str) -> list:
             continue
         if k in math and not re.search(r"[一-鿿]", k):
             out += [t for t in re.findall(r"\\[A-Za-z]+|[=+\-<>]", k) if t[1:] not in GREEK]
-        elif re.search(r"[A-Za-z一-鿿]", k):
-            out.append(k)
+        elif re.search(r"[A-Za-z一-鿿]", k) and len(k) < len(re.sub(r"[^\w]", "", back)) / 2:
+            out.append(k)  # 占了答案一半以上的片段就是答案本身，不当骨架
     return list(dict.fromkeys(out))
 
 
