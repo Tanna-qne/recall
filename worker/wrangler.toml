@@ -1,0 +1,11 @@
+name = "recall-api"
+main = "index.js"
+workers_dev = true
+compatibility_date = "2026-10-01"
+
+[vars]
+MODEL = "DeepSeek-v4-pro"
+
+[[kv_namespaces]]
+binding = "DECKS"
+id = "74f08cc5cac8418688ff19aa44c0e090"
