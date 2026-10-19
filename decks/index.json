@@ -1,5 +1,12 @@
 [
  {
+  "id": "test-photo",
+  "title": "测试：光合作用",
+  "count": 6,
+  "hash": "36809c452118",
+  "updated": "2026-10-19"
+ },
+ {
   "id": "sample-trig",
   "title": "示例：三角函数基础",
   "count": 18,
