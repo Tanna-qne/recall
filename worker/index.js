@@ -1,3 +1,5 @@
+import katex from "katex";
+
 // 回想卡的后端：网页把资料发过来，这里调用 AI 整理成卡片，存进 KV。
 // 所有接口都要带口令（请求头 X-Pass），资料和卡片不公开。
 // 密钥（wrangler secret）：API_BASE、API_KEY、PASSWORD；MODEL 在 wrangler.toml 里。
@@ -13,7 +15,7 @@ const GEN_PROMPT = `把下面的资料做成记忆卡片。目标是有条理、
 2. 如果是笔记或段落，整理成卡片：一张卡只记一个点。正面是提问或提示，背面是简短答案，最好不超过 40 个字。
 3. 只用资料里的内容，不编造，不补充资料以外的知识。
 4. 按资料本身的逻辑分组，组名是这一块的主题；组内从基础到进阶排。
-5. 公式一律用 LaTeX 写在 $...$ 里，比如 $E=mc^2$。字母、符号、单位照资料原样写。
+5. 公式、符号、希腊字母、上下标一律用 LaTeX 写在 $...$ 里，正面和背面都一样，比如 $\\sin\\theta = a/c$、$x^2$、$\\frac{1}{2}$。不要用 θ、²、√ 这类特殊字符代替 LaTeX，不要用 \\( \\) 或 $$。JSON 里反斜杠要写两个，比如 "$\\\\frac{1}{2}$"。字母、单位照资料原样写。
 6. 每张卡标出背面的「骨架」（keep）：答案会每天变一点，最后只剩骨架，帮人回想原样。骨架必须是背面里原样出现的片段：
    - 一句话：留主语、谓语动词和关键名词，比如「光合作用把光能转化为化学能」留 ["光合作用", "转化为"]；
    - 公式：只留函数名和运算符，比如 ["\\\\sin", "=", "+"]；
@@ -54,7 +56,7 @@ async function chat(env, prompt, system) {
       if (!r.ok) { err = 'HTTP ' + r.status; continue; }
       const text = ((await r.json()).choices?.[0]?.message?.content || '').trim();
       const s = text.indexOf('{'), e = text.lastIndexOf('}');
-      if (s >= 0 && e > s) return JSON.parse(text.slice(s, e + 1));
+      if (s >= 0 && e > s) return JSON.parse(fixEscapes(text.slice(s, e + 1)));
       err = '回复不是 JSON';
     } catch (e) {
       if (String(e.message).startsWith('模型服务拒绝')) throw e;
@@ -62,6 +64,45 @@ async function chat(env, prompt, system) {
     }
   }
   throw new Error('AI 连续 3 次出错：' + err);
+}
+
+// ---------------- 公式：保证都是能显示的 LaTeX ----------------
+// 模型常把 \theta 写成 JSON 里的单个反斜杠，解析后 \t 变成制表符、\f 变成换页……这里先补成双反斜杠
+function fixEscapes(t) {
+  return t.replace(/\\\\|\\(u[0-9a-fA-F]{4})|\\(["\/])|\\/g, (m, u, q) => (m === '\\\\' || u || q) ? m : '\\\\');
+}
+
+const UNI = { 'θ': '\\theta ', 'α': '\\alpha ', 'β': '\\beta ', 'γ': '\\gamma ', 'δ': '\\delta ', 'ε': '\\varepsilon ', 'π': '\\pi ',
+  'λ': '\\lambda ', 'μ': '\\mu ', 'σ': '\\sigma ', 'φ': '\\varphi ', 'ω': '\\omega ', 'ρ': '\\rho ', 'Δ': '\\Delta ', 'Ω': '\\Omega ', 'Σ': '\\Sigma ',
+  '²': '^2', '³': '^3', '√': '\\sqrt ', '±': '\\pm ', '×': '\\times ', '÷': '\\div ', '≤': '\\le ', '≥': '\\ge ', '≠': '\\ne ',
+  '≈': '\\approx ', '∞': '\\infty ', '·': '\\cdot ', '°': '^\\circ ', '−': '-', '→': '\\to ' };
+const MATH_RUN = /[A-Za-z0-9θαβγδεπλμσφωρΔΩΣ²³√±×÷≤≥≠≈∞·°−→()\[\]{}\/^_=+\-*.,' ]+/g;
+const MATH_SIGNAL = /[=^²³√±×÷≤≥≠≈∞θαβγδεπλμσφωρΔΩΣ°→]|\b(?:sin|cos|tan|cot|log|ln|lim)\b/;
+
+function toLatex(run) {
+  return run.replace(/(?<![\\A-Za-z])(sin|cos|tan|cot|sec|csc|log|ln|lim|exp)(?![A-Za-z])/g, '\\$1 ')
+    .replace(/[θαβγδεπλμσφωρΔΩΣ²³√±×÷≤≥≠≈∞·°−→]/g, c => UNI[c]).replace(/\s+/g, ' ').trim();
+}
+function renders(tex) {
+  try { katex.renderToString(tex, { throwOnError: true, strict: 'ignore' }); return true; } catch (e) { return false; }
+}
+// 统一成 $...$；没加 $ 的 sinθ、x² 之类包起来；KaTeX 渲染不了的去掉 $，至少不显示红字
+function cleanMath(s) {
+  s = String(s || '').replace(/\$\$([\s\S]+?)\$\$/g, '$$$1$').replace(/\\\(([\s\S]+?)\\\)/g, '$$$1$').replace(/\\\[([\s\S]+?)\\\]/g, '$$$1$');
+  return s.split(/(\$[^$]+\$)/).map(part => {
+    if (part.length > 2 && part.startsWith('$') && part.endsWith('$')) {
+      const tex = toLatex(part.slice(1, -1));
+      return renders(tex) ? '$' + tex + '$' : part.slice(1, -1);
+    }
+    return part.replace(MATH_RUN, run => {
+      const core = run.trim().replace(/[.,]+$/, '');
+      if (!MATH_SIGNAL.test(core) || !/[A-Za-z0-9θαβγδεπλμσφωρΔΩΣ]/.test(core)) return run;
+      const tex = toLatex(core);
+      if (!renders(tex)) return run;
+      const lead = run.match(/^\s*/)[0], tail = run.slice(run.indexOf(core) + core.length);
+      return lead + '$' + tex + '$' + tail;
+    });
+  }).join('');
 }
 
 function chunks(text) {
@@ -81,7 +122,9 @@ function skeleton(keep, back) {
   const out = [];
   for (const k of keep || []) {
     if (typeof k !== 'string' || !k || !back.includes(k)) continue;
-    if (math.includes(k) && !/[一-鿿]/.test(k)) out.push(...(k.match(/\\[A-Za-z]+|[=+\-<>]/g) || []).filter(t => !GREEK.has(t.slice(1))));
+    const formula = !/[一-鿿]/.test(k) && (math.includes(k) || /[=/^+\-*\d²³]/.test(k));  // 没写 $ 的公式也算
+    if (formula) out.push(...(k.match(/\\[A-Za-z]+|\b(?:sin|cos|tan|cot|sec|csc|log|ln|lim|exp|max|min)\b|[=+\-<>]/g) || [])
+      .filter(t => !GREEK.has(t.replace(/^\\/, ''))));
     else if (/[A-Za-z一-鿿]/.test(k) && k.length < letters / 2) out.push(k);
   }
   return [...new Set(out)];
@@ -104,7 +147,11 @@ async function makeDeck(env, text) {
       }
     } catch (e) { /* 核对失败就不核对 */ }
     for (const g of gs) {
-      g.cards = g.cards.filter(c => !c._drop).map(c => ({ front: String(c.front || ''), back: String(c.back || ''), keep: skeleton(c.keep, String(c.back || '')) }));
+      g.cards = g.cards.filter(c => !c._drop).map(c => {
+        const back = cleanMath(c.back);
+        const keep = skeleton((c.keep || []).map(k => /[$\\θαβπ²√]/.test(k) ? toLatex(String(k).replace(/\$/g, '')) : k), back);
+        return { front: cleanMath(c.front), back, keep };
+      });
       if (g.cards.length) groups.push({ name: String(g.name || ''), cards: g.cards });
     }
   }
