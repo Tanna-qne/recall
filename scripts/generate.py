@@ -43,7 +43,7 @@ GEN_PROMPT = """把下面的资料做成记忆卡片。目标是有条理、方�
    骨架是帮人回想的提示，不能是答案本身：要记的数值、结论、关键变量不要放进骨架，比如"sin30° = 1/2"留 ["sin30°", "="]，1/2 不留。
    骨架不要太多，一般占背面的三分之一左右；不要放单独一个数字。
 
-只输出 JSON，不要别的文字：
+只输出 JSON，不要别的文字。字符串里要用引号就用中文引号「」，不要用英文双引号：
 {{"title": "这副卡的名字", "groups": [{{"name": "组名", "cards": [{{"front": "……", "back": "……", "hint": "", "keep": ["……"]}}]}}]}}
 
 资料：
@@ -56,7 +56,7 @@ CHECK_PROMPT = """下面是根据资料做的记忆卡。请逐张对照资料�
 每张卡给一个结论：keep（没问题）、fix（有错或不清楚，给出改正后的 front 和 back）、drop（资料里没有依据）。
 拿不准的就 keep，不要把对的改错。
 
-只输出 JSON，不要别的文字：
+只输出 JSON，不要别的文字。字符串里要用引号就用中文引号「」，不要用英文双引号：
 {{"verdicts": [{{"g": 组序号, "c": 卡序号, "action": "keep|fix|drop", "front": "改正后的正面（fix 时填）", "back": "改正后的背面（fix 时填）", "why": "一句话"}}]}}
 
 卡片（组序号和卡序号都从 0 开始）：
@@ -100,6 +100,16 @@ def parse_json(text: str) -> dict:
     return json.loads(text[start:end + 1])
 
 
+def ask_json(prompt: str, system: str) -> dict:
+    """模型偶尔会输出坏掉的 JSON（比如引号没转义），重问几次。"""
+    for attempt in range(1, 4):
+        try:
+            return parse_json(chat(prompt, system))
+        except ValueError as exc:  # JSONDecodeError 也是 ValueError
+            print(f"  回复不是合法的 JSON（{exc}），重新生成 {attempt}/3")
+    sys.exit("连续 3 次没拿到合法的 JSON。")
+
+
 def chunks(text: str) -> list[str]:
     out, buf = [], ""
     for para in re.split(r"\n\s*\n", text):
@@ -140,14 +150,14 @@ def make_deck(text: str) -> dict:
     title, groups = "", []
     for i, part in enumerate(chunks(text), 1):
         print(f"  出卡 {i}……")
-        deck = parse_json(chat(GEN_PROMPT.format(text=part), "你擅长把资料整理成好记的记忆卡。"))
+        deck = ask_json(GEN_PROMPT.format(text=part), "你擅长把资料整理成好记的记忆卡。")
         title = title or deck.get("title", "")
         deck_groups = [g for g in deck.get("groups", []) if g.get("cards")]
         print(f"  核对 {sum(len(g['cards']) for g in deck_groups)} 张卡……")
         listed = json.dumps(deck_groups, ensure_ascii=False)
         try:
-            verdicts = parse_json(chat(CHECK_PROMPT.format(cards=listed, text=part), "你是严谨的审稿人。"))["verdicts"]
-        except (ValueError, KeyError):
+            verdicts = ask_json(CHECK_PROMPT.format(cards=listed, text=part), "你是严谨的审稿人。")["verdicts"]
+        except (SystemExit, KeyError):  # 核对失败就不核对
             verdicts = []
         changed = 0
         for v in verdicts:
