@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>回想卡</title>
+<meta name="description" content="把资料做成记忆卡。答案每天少一点，努力回想原来的样子。">
+<meta name="theme-color" content="#e9e5dc">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700;900&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+/* 布局：书桌上的一张索引卡。卡面横线 + 顶部红色边线，墨水蓝字；单栏，底部大按钮 */
+:root {
+  --desk:#e9e5dc; --card:#fffdf7; --rule:#cfe0ee; --margin:#d9534f; --ink:#22305e; --text:#2a2a28;
+  --muted:#77746c; --faint:#b9b4a8; --line:#d8d3c7; --accent:#22305e; --on-accent:#fffdf7; --good:#2f6b4a; --soft:#f4f1e8;
+  --serif:"Noto Serif SC","Songti SC","STSong",serif;
+  --sans:"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --desk:#16181d; --card:#22252c; --rule:#2c3340; --margin:#b5524c; --ink:#c9d4f5; --text:#e6e3dc;
+    --muted:#9a978f; --faint:#5d5b56; --line:#33363d; --accent:#a9b8ee; --on-accent:#16181d; --good:#7cc49b; --soft:#1c1f25; color-scheme:dark; }
+}
+* { box-sizing:border-box; }
+html, body { background:var(--desk); }
+body { margin:0; color:var(--text); font:16px/1.65 var(--sans); -webkit-tap-highlight-color:transparent; }
+.wrap { max-width:620px; margin:0 auto; padding-block:calc(26px + env(safe-area-inset-top, 0px)) calc(48px + env(safe-area-inset-bottom, 0px));
+  padding-left:max(18px, env(safe-area-inset-left, 0px)); padding-right:max(18px, env(safe-area-inset-right, 0px)); }
+a { color:var(--accent); }
+button { font:inherit; cursor:pointer; border-radius:12px; border:1px solid var(--line); background:var(--card); color:var(--text); padding:9px 16px; }
+button.primary { background:var(--accent); border-color:var(--accent); color:var(--on-accent); font-weight:600; }
+button:disabled { opacity:.5; cursor:default; }
+button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-visible, .card:focus-visible { outline:2px solid var(--margin); outline-offset:2px; }
+.link { background:none; border:0; padding:4px 0; color:var(--accent); font-weight:600; }
+textarea, input[type=text], select { width:100%; font:inherit; color:var(--text); background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+textarea { min-height:200px; line-height:1.6; }
+.muted { color:var(--muted); }
+.small { font-size:.85rem; }
+
+/* 首页 */
+.mast { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.mast h1 { font:900 clamp(2.4rem, 11vw, 3.4rem)/1 var(--serif); margin:0; color:var(--ink); letter-spacing:.06em; }
+.mast p { margin:.5em 0 0; color:var(--muted); max-width:26em; }
+.today { margin:26px 0 18px; display:flex; gap:10px; flex-wrap:wrap; }
+.pill { background:var(--card); border:1px solid var(--line); border-radius:999px; padding:6px 14px; font-size:.9rem; font-variant-numeric:tabular-nums; }
+.pill b { color:var(--ink); }
+.decks { display:grid; gap:14px; }
+.deck { position:relative; background:var(--card); border-radius:6px; padding:22px 18px 16px 18px; border:1px solid var(--line);
+  background-image:linear-gradient(var(--margin), var(--margin)), repeating-linear-gradient(transparent 0 27px, var(--rule) 27px 28px);
+  background-size:100% 2px, 100% 100%; background-position:0 14px, 0 18px; background-repeat:no-repeat, repeat;
+  display:grid; grid-template-columns:1fr auto; gap:6px 14px; align-items:center; }
+.deck h2 { font:700 1.2rem/1.4 var(--serif); margin:0; color:var(--ink); min-width:0; }
+.deck .meta { grid-column:1; font-size:.85rem; color:var(--muted); font-variant-numeric:tabular-nums; }
+.deck .go { grid-column:2; grid-row:1 / span 2; }
+.deck .del { position:absolute; top:4px; right:8px; border:0; background:none; color:var(--faint); padding:2px 6px; font-size:.8rem; }
+.empty { text-align:center; padding:40px 12px; color:var(--muted); background:var(--card); border:1px dashed var(--line); border-radius:8px; }
+.actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:20px; }
+.status { margin-top:16px; font-size:.85rem; color:var(--muted); }
+.status .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--faint); margin-right:6px; vertical-align:1px; }
+.status .dot.run { background:#d9a33a; } .status .dot.ok { background:var(--good); } .status .dot.bad { background:var(--margin); }
+
+/* 表单页 */
+.page h1 { font:700 1.8rem/1.3 var(--serif); margin:14px 0 6px; color:var(--ink); }
+.steps { counter-reset:s; list-style:none; padding:0; margin:14px 0; display:grid; gap:8px; }
+.steps li { counter-increment:s; display:grid; grid-template-columns:28px 1fr; gap:8px; color:var(--muted); font-size:.92rem; }
+.steps li::before { content:counter(s); width:24px; height:24px; border-radius:50%; background:var(--ink); color:var(--card); font-size:.8rem;
+  display:flex; align-items:center; justify-content:center; font-weight:700; margin-top:1px; }
+.field { display:grid; gap:6px; margin-top:14px; }
+.field label { font-weight:600; font-size:.92rem; }
+.row { display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; align-items:center; }
+.msg { font-size:.9rem; }
+
+/* 学习页 */
+.studybar { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.progress { height:4px; background:var(--line); border-radius:2px; margin:12px 0 18px; overflow:hidden; }
+.progress i { display:block; height:100%; background:var(--ink); transition:width .25s; }
+.group { font-size:.8rem; letter-spacing:.12em; color:var(--margin); font-weight:700; margin-bottom:8px; }
+.card { position:relative; min-height:360px; border-radius:6px; background:var(--card); border:1px solid var(--line); cursor:pointer;
+  box-shadow:0 1px 0 var(--line), 0 10px 30px -18px rgba(0,0,0,.35);
+  background-image:linear-gradient(var(--margin), var(--margin)), repeating-linear-gradient(transparent 0 31px, var(--rule) 31px 32px);
+  background-size:100% 2px, 100% 100%; background-position:0 46px, 0 50px; background-repeat:no-repeat, repeat;
+  display:flex; flex-direction:column; padding:62px 22px 20px; gap:20px; }
+.count { position:absolute; top:14px; right:16px; font-size:.78rem; color:var(--muted); font-variant-numeric:tabular-nums; }
+.front { font:700 clamp(1.3rem, 5.6vw, 1.7rem)/1.55 var(--serif); color:var(--ink); word-break:break-word; }
+.back { font-size:1.3rem; line-height:1.75; word-break:break-word; min-height:1.75em; }
+.back.morphed { color:var(--text); letter-spacing:.03em; }
+.back.orig { color:var(--good); }
+.hint { font-size:.9rem; color:var(--muted); border-left:3px solid var(--rule); padding-left:10px; }
+.tap { margin-top:auto; font-size:.8rem; color:var(--faint); text-align:right; }
+.next { width:100%; margin-top:16px; padding:15px; font-size:1.05rem; }
+.done { text-align:center; padding:48px 0 20px; }
+.done h2 { font:700 1.7rem/1.3 var(--serif); color:var(--ink); }
+.katex { font-size:1.05em; }
+@media (prefers-reduced-motion: reduce) { .progress i { transition:none; } }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><p class="muted">正在打开……</p></div>
+<script>
+const REPO = 'Tanna-qne/recall';
+const NEW_PER_DAY = 20;
+// 第 n 次看完之后，隔几天再出现（越看越久）
+const GAP = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34];
+
+// ---------------- 存储 ----------------
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('recall:' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('recall:' + k, JSON.stringify(v)); } catch (e) {} }
+};
+const today = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };  // 本地日期
+const daysSince = d => Math.round((Date.parse(today()) - Date.parse(d)) / 86400000);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const state = id => store.get('v:' + id, null);           // { views: 看过几天, last: 上次看的日期 }
+
+// 每天第一次看到这张卡时记一次
+function markSeen(id) {
+  const s = state(id);
+  if (s && s.last === today()) return s.views;
+  const views = (s ? s.views : 0) + 1;
+  store.set('v:' + id, { views, last: today() });
+  return views;
+}
+function isDue(id) {
+  const s = state(id);
+  return s && s.last !== today() && daysSince(s.last) >= GAP[Math.min(s.views, GAP.length - 1)];
+}
+
+// ---------------- 记忆变形 ----------------
+// 第 1 次：原样。第 2 次：几个字挪了位置。之后每次多掉几个字。到第 7 次：只剩骨架。
+// 骨架 = 生成卡片时标出来的 keep（主语、动词、关键名词；公式的函数名和运算符），一直留着。
+const STEPS = [  // [挪位置的比例, 掉字的比例]，按第几次看
+  [0, 0], [0, 0], [0.15, 0], [0.15, 0.2], [0.1, 0.4], [0.05, 0.6], [0, 0.8], [0, 1]
+];
+const GREEK = /^\\(alpha|beta|gamma|delta|epsilon|varepsilon|zeta|eta|theta|vartheta|iota|kappa|lambda|mu|nu|xi|rho|sigma|tau|upsilon|phi|varphi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Sigma|Phi|Psi|Omega)$/;
+
+function hash(s) { let h = 2166136261; for (const c of s) { h ^= c.codePointAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function perm(n, seed) {
+  const a = [...Array(n).keys()]; let s = seed || 1;
+  for (let i = n - 1; i > 0; i--) { s = (Math.imul(s, 1103515245) + 12345) >>> 0; const j = s % (i + 1); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+// 没标骨架的卡（比如从 Quizlet 导入的）：每个词留首字母，每句中文留开头一个字
+function defaultKeep(text) {  // 返回要留的位置
+  const at = [];
+  for (const m of text.matchAll(/[A-Za-z]{2,}/g)) at.push(m.index);
+  for (const m of text.matchAll(/(?:^|[，。；、,.;：:\s])([一-鿿])/g)) at.push(m.index + m[0].length - 1);
+  return at;
+}
+function morph(text, keep, views, seed) {
+  const step = STEPS[Math.min(views, STEPS.length - 1)];
+  if (!step[0] && !step[1]) return text;
+  const parts = String(text).split(/(\$[^$]+\$)/);
+  // 骨架保护：keep 片段在原文里出现的位置都不动
+  const protect = new Set();
+  let offset = 0;
+  const flat = parts.join('');
+  if (keep && keep.length) {
+    for (const k of keep) {
+      let at = flat.indexOf(k);
+      while (at >= 0) { for (let i = 0; i < k.length; i++) protect.add(at + i); at = flat.indexOf(k, at + Math.max(1, k.length)); }
+    }
+  } else defaultKeep(flat).forEach(i => protect.add(i));
+  // 切成可变的小单位：文字里一个字/字母/数字；公式里一个字母、数字或希腊字母
+  const toks = [], units = [];
+  parts.forEach((p, pi) => {
+    const math = p.length > 1 && p.startsWith('$') && p.endsWith('$');
+    const pieces = math ? ['$', ...(p.slice(1, -1).match(/\\[A-Za-z]+|[\s\S]/g) || []), '$'] : [...p];
+    for (const piece of pieces) {
+      const start = offset; offset += piece.length;
+      const covered = [...Array(piece.length).keys()].some(i => protect.has(start + i));
+      const variable = math ? (/^[A-Za-z0-9]$/.test(piece) || GREEK.test(piece)) : /[\p{L}\p{N}]/u.test(piece);
+      const t = { s: piece, math, part: pi, gone: false };
+      if (variable && !covered && piece !== '$') { t.u = units.length; units.push(toks.length); }
+      toks.push(t);
+    }
+  });
+  if (!units.length) return text;
+  // 挪位置：同一段里相邻的两个单位交换
+  const swaps = Math.round(units.length * step[0]);
+  let done = 0;
+  for (const i of perm(units.length - 1, seed)) {
+    if (done >= swaps) break;
+    const a = toks[units[i]], b = toks[units[i + 1]];
+    if (!a || !b || a.part !== b.part || a.swapped || b.swapped) continue;
+    [a.s, b.s] = [b.s, a.s]; a.swapped = b.swapped = true; done++;
+  }
+  // 掉字：每次在上一次的基础上多掉一些
+  const drops = step[1] >= 1 ? units.length : Math.floor(units.length * step[1]);
+  perm(units.length, seed ^ 0x9e3779b9).slice(0, drops).forEach(i => { toks[units[i]].gone = true; });
+  // 拼回去：公式里掉的变成小方框；文字里连续掉两个以上变成"…"
+  let out = '', run = 0;
+  for (const t of toks) {
+    if (t.gone && !t.math) { run++; continue; }
+    if (run) { out += run >= 2 ? '…' : ''; run = 0; }
+    out += t.gone ? '\\square ' : t.s;
+  }
+  if (run) out += run >= 2 ? '…' : '';
+  return out;
+}
+function renderMath(el) {
+  if (window.renderMathInElement) {
+    try { renderMathInElement(el, { delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }], throwOnError: false }); } catch (e) {}
+  }
+}
+
+// ---------------- 卡组 ----------------
+let decks = [];
+async function loadDecks() {
+  let index = [];
+  try { index = await (await fetch('decks/index.json', { cache: 'no-cache' })).json(); } catch (e) {}
+  const built = await Promise.all(index.map(async d => {
+    try { const full = await (await fetch(`decks/${d.id}.json`, { cache: 'no-cache' })).json(); return { ...full, source: 'ai' }; }
+    catch (e) { return null; }
+  }));
+  const mine = store.get('imported', []).map(d => ({ ...d, source: 'import' }));
+  decks = [...built.filter(Boolean), ...mine].map(d => ({
+    ...d, cards: d.groups.flatMap(g => g.cards.map(c => ({ ...c, group: g.name, id: d.id + '|' + c.front })))
+  }));
+}
+function newToday(deck) { const r = store.get('new:' + deck.id, null); return r && r.date === today() ? r.n : 0; }
+function todayList(deck) {
+  const due = deck.cards.filter(c => isDue(c.id));
+  const room = Math.max(0, NEW_PER_DAY - newToday(deck));
+  return [...due, ...deck.cards.filter(c => !state(c.id)).slice(0, room)];
+}
+
+// ---------------- 首页 ----------------
+const app = document.getElementById('app');
+function home() {
+  let total = 0;
+  const rows = decks.map((d, i) => {
+    const n = todayList(d).length; total += n;
+    const seen = d.cards.filter(c => state(c.id)).length;
+    return `<div class="deck"><h2>${esc(d.title)}</h2>
+      <div class="meta">${d.cards.length} 张 · ${d.groups.length} 组 · 看过 ${seen}${d.source === 'import' ? ' · 导入的' : ''}</div>
+      <button class="go ${n ? 'primary' : ''}" data-go="${i}">${n ? `今天 ${n} 张` : '再看一遍'}</button>
+      ${d.source === 'import' ? `<button class="del" data-del="${i}" aria-label="删除这副卡">删除</button>` : ''}</div>`;
+  }).join('');
+  app.innerHTML = `
+    <div class="mast"><div><h1>回想卡</h1><p>第一次看是原样。之后每次看，答案都会变一点：先挪位置，再掉字，最后只剩骨架。看着骨架，想起原来的样子。</p></div></div>
+    <div class="today"><span class="pill">今天 <b>${total}</b> 张</span></div>
+    <div class="decks">${rows || '<div class="empty">还没有卡片。点下面"用资料生成"，把你的笔记或资料变成一副卡。</div>'}</div>
+    <div class="actions"><button class="primary" id="toGen">用资料生成</button><button id="toImp">导入 Quizlet</button></div>
+    <div class="status" id="status"></div>`;
+  app.querySelectorAll('[data-go]').forEach(b => b.onclick = () => study(decks[+b.dataset.go]));
+  app.querySelectorAll('[data-del]').forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    const d = decks[+b.dataset.del];
+    if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = '再点一次删除'; return; }
+    store.set('imported', store.get('imported', []).filter(x => x.id !== d.id));
+    loadDecks().then(home);
+  });
+  document.getElementById('toGen').onclick = generatePage;
+  document.getElementById('toImp').onclick = importPage;
+  showStatus();
+}
+async function showStatus() {
+  const el = document.getElementById('status');
+  if (!el) return;
+  try {
+    const r = await (await fetch(`https://api.github.com/repos/${REPO}/actions/runs?per_page=1`)).json();
+    const run = r.workflow_runs && r.workflow_runs[0];
+    if (!run) return;
+    const mins = Math.max(0, Math.round((Date.now() - Date.parse(run.updated_at)) / 60000));
+    const ago = mins < 1 ? '刚刚' : mins < 60 ? `${mins} 分钟前` : `${Math.round(mins / 60)} 小时前`;
+    let dot = 'ok', text = `上次生成：完成（${ago}）`;
+    if (run.status !== 'completed') { dot = 'run'; text = '正在生成新卡片，1～3 分钟后刷新'; }
+    else if (run.conclusion !== 'success') { dot = 'bad'; text = `上次生成没成功（${ago}）`; }
+    el.innerHTML = `<span class="dot ${dot}"></span>${text}`;
+  } catch (e) {}
+}
+
+// ---------------- 用资料生成 ----------------
+function generatePage() {
+  app.innerHTML = `<div class="page">
+    <button class="link" id="back">← 回去</button>
+    <h1>用资料生成</h1>
+    <p class="muted">粘贴笔记、课本段落、公式表都行。会按资料的逻辑分组，一张卡只记一个点，并标出每张卡的骨架。生成后还会对照资料核对一遍。</p>
+    <div class="field"><label for="gTitle">卡组名字</label><input type="text" id="gTitle" placeholder="比如：三角函数公式"></div>
+    <div class="field"><label for="gText">资料</label><textarea id="gText" placeholder="把资料粘贴到这里"></textarea></div>
+    <ol class="steps"><li>点下面的按钮：资料会复制好，并打开 GitHub 的新建文件页。</li>
+      <li>在 GitHub 页面的大输入框里粘贴，点右上角绿色的 Commit changes，再点一次确认。</li>
+      <li>1～3 分钟后回来刷新，新卡组就出现了。</li></ol>
+    <div class="row"><button class="primary" id="gGo">复制资料并去 GitHub</button><span class="msg muted" id="gMsg"></span></div>
+    <p class="muted small">资料会存在公开仓库 ${REPO} 里，别放私密内容。手机上第一次要先登录 GitHub。</p></div>`;
+  document.getElementById('back').onclick = home;
+  document.getElementById('gGo').onclick = async () => {
+    const title = document.getElementById('gTitle').value.trim();
+    const text = document.getElementById('gText').value.trim();
+    const msg = document.getElementById('gMsg');
+    if (!text) { msg.textContent = '先粘贴资料。'; return; }
+    const body = (title ? `# ${title}\n\n` : '') + text + '\n';
+    let copied = false;
+    try { await navigator.clipboard.writeText(body); copied = true; } catch (e) {}
+    const name = 'n' + new Date().toISOString().replace(/\D/g, '').slice(0, 12) + '.md';
+    const url = `https://github.com/${REPO}/new/main/inputs?filename=${encodeURIComponent(name)}`;
+    window.open(url, '_blank');
+    msg.innerHTML = copied ? '已复制。去 GitHub 粘贴并提交吧。' : `没能自动复制，请手动复制上面的资料，再打开 <a href="${url}" target="_blank" rel="noopener">GitHub 新建文件页</a>。`;
+  };
+}
+
+// ---------------- 导入 Quizlet ----------------
+function importPage() {
+  app.innerHTML = `<div class="page">
+    <button class="link" id="back">← 回去</button>
+    <h1>导入 Quizlet</h1>
+    <ol class="steps"><li>在 Quizlet 打开学习集，点"…"→"导出"。</li><li>"术语和定义之间"选"制表符"，"卡片之间"选"新行"。</li><li>点"复制文本"，粘贴到下面。</li></ol>
+    <div class="field"><label for="iTitle">卡组名字</label><input type="text" id="iTitle" placeholder="比如：日语五十音"></div>
+    <div class="field"><label for="iText">导出的文本</label><textarea id="iText" placeholder="术语[Tab]定义&#10;术语[Tab]定义"></textarea></div>
+    <div class="row"><select id="iSep" style="width:auto"><option value="tab">术语和定义之间：制表符</option><option value="comma">逗号</option><option value="dash">" - "</option></select>
+      <button class="primary" id="iGo">导入</button><span class="msg muted" id="iMsg"></span></div>
+    <p class="muted small">导入的卡组只存在这个浏览器里。没有标骨架，会按每个词的首字母、每句的第一个字留骨架。</p></div>`;
+  document.getElementById('back').onclick = home;
+  document.getElementById('iGo').onclick = () => {
+    const sep = { tab: '\t', comma: ',', dash: ' - ' }[document.getElementById('iSep').value];
+    const cards = document.getElementById('iText').value.split(/\r?\n/).map(r => {
+      const i = r.indexOf(sep); return i < 0 ? null : { front: r.slice(0, i).trim(), back: r.slice(i + sep.length).trim(), hint: '', keep: [] };
+    }).filter(c => c && c.front && c.back);
+    if (!cards.length) { document.getElementById('iMsg').textContent = '没认出卡片，检查一下分隔方式。'; return; }
+    const title = document.getElementById('iTitle').value.trim() || '导入的卡组';
+    store.set('imported', [...store.get('imported', []), { id: 'imp-' + Date.now(), title, groups: [{ name: title, cards }] }]);
+    loadDecks().then(home);
+  };
+}
+
+// ---------------- 学习：一张一张看，只有"下一张" ----------------
+function study(deck) {
+  const list = todayList(deck);
+  const queue = list.length ? list : deck.cards.slice();
+  let i = 0, peek = false;
+
+  function render() {
+    if (i >= queue.length) {
+      app.innerHTML = `<button class="link" id="back">← 卡组</button><div class="done"><h2>今天这副看完了</h2>
+        <p class="muted">${queue.length} 张。下次再见到，它们会再变一点。</p></div>`;
+      document.getElementById('back').onclick = () => home();
+      return;
+    }
+    const c = queue[i];
+    const wasNew = !state(c.id);
+    const views = markSeen(c.id);
+    if (wasNew) store.set('new:' + deck.id, { date: today(), n: newToday(deck) + 1 });
+    const shown = peek ? c.back : morph(c.back, c.keep, views, hash(c.id));
+    const changed = shown !== c.back;
+    app.innerHTML = `
+      <div class="studybar"><button class="link" id="back">← 卡组</button><span class="small muted">${i + 1} / ${queue.length}</span></div>
+      <div class="progress"><i style="width:${i / queue.length * 100}%"></i></div>
+      <div class="group">${esc(c.group)}</div>
+      <div class="card" id="card" role="button" tabindex="0" aria-label="${changed ? '点一下看原样' : '卡片'}">
+        <span class="count">第 ${views} 次</span>
+        <div class="front">${esc(c.front)}</div>
+        <div class="back ${peek ? 'orig' : 'morphed'}">${esc(shown)}</div>
+        ${peek && c.hint ? `<div class="hint">${esc(c.hint)}</div>` : ''}
+        <div class="tap">${peek ? '这是原样' : changed ? '想不起来，点一下看原样' : ''}</div>
+      </div>
+      <button class="next primary" id="next">${i === queue.length - 1 ? '看完了' : '下一张 →'}</button>`;
+    renderMath(document.getElementById('card'));
+    document.getElementById('back').onclick = () => home();
+    const card = document.getElementById('card');
+    const flip = () => { if (changed || peek) { peek = !peek; render(); } };
+    card.onclick = flip;
+    card.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } };
+    document.getElementById('next').onclick = () => { i++; peek = false; render(); };
+  }
+  render();
+}
+
+window.addEventListener('DOMContentLoaded', () => loadDecks().then(home));
+</script>
+</body>
+</html>

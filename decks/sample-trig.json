@@ -1,0 +1,204 @@
+{
+ "id": "sample-trig",
+ "title": "示例：三角函数基础",
+ "groups": [
+  {
+   "name": "直角三角形中的三角函数定义",
+   "cards": [
+    {
+     "front": "在直角三角形中，锐角 θ 的正弦 sinθ 等于什么？",
+     "back": "$\\sin\\theta = a/c$（a 是对边，c 是斜边）",
+     "hint": "对/斜",
+     "keep": [
+      "\\sin",
+      "="
+     ]
+    },
+    {
+     "front": "在直角三角形中，锐角 θ 的余弦 cosθ 等于什么？",
+     "back": "$\\cos\\theta = b/c$（b 是邻边，c 是斜边）",
+     "hint": "邻/斜",
+     "keep": [
+      "\\cos",
+      "="
+     ]
+    },
+    {
+     "front": "在直角三角形中，锐角 θ 的正切 tanθ 等于什么？",
+     "back": "$\\tan\\theta = a/b$（a 是对边，b 是邻边）",
+     "hint": "对/邻",
+     "keep": [
+      "\\tan",
+      "="
+     ]
+    },
+    {
+     "front": "直角三角形的勾股定理是什么？",
+     "back": "$a^2 + b^2 = c^2$",
+     "hint": "",
+     "keep": [
+      "+",
+      "="
+     ]
+    }
+   ]
+  },
+  {
+   "name": "同角三角函数关系",
+   "cards": [
+    {
+     "front": "由勾股定理得到的同角关系式是什么？",
+     "back": "$\\sin^2\\theta + \\cos^2\\theta = 1$",
+     "hint": "勾股两边除以 c² 就得到",
+     "keep": [
+      "\\sin",
+      "+",
+      "\\cos",
+      "="
+     ]
+    },
+    {
+     "front": "tanθ 用 sinθ 和 cosθ 怎么表示？",
+     "back": "$\\tan\\theta = \\sin\\theta / \\cos\\theta$",
+     "hint": "用定义：对/斜 ÷ 邻/斜 = 对/邻",
+     "keep": [
+      "\\tan",
+      "=",
+      "\\sin",
+      "\\cos"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "弧度制",
+   "cards": [
+    {
+     "front": "一个完整的圆是多少弧度？等于多少度？",
+     "back": "$2\\pi$ 弧度 $= 360°$",
+     "hint": "",
+     "keep": [
+      "="
+     ]
+    },
+    {
+     "front": "180° 等于多少弧度？",
+     "back": "$\\pi$ 弧度",
+     "hint": "360° 的一半",
+     "keep": []
+    },
+    {
+     "front": "1 弧度约等于多少度？",
+     "back": "约 $57.3°$",
+     "hint": "180°/π ≈ 57.3°",
+     "keep": []
+    }
+   ]
+  },
+  {
+   "name": "特殊角的三角函数值",
+   "cards": [
+    {
+     "front": "sin30°、cos30°、tan30° 分别等于多少？",
+     "back": "$\\sin30° = 1/2$，$\\cos30° = \\sqrt{3}/2$，$\\tan30° = \\sqrt{3}/3$",
+     "hint": "30° 的对边最短",
+     "keep": [
+      "\\sin",
+      "="
+     ]
+    },
+    {
+     "front": "sin45°、cos45°、tan45° 分别等于多少？",
+     "back": "$\\sin45° = \\cos45° = \\sqrt{2}/2$，$\\tan45° = 1$",
+     "hint": "等腰直角三角形，对边=邻边",
+     "keep": [
+      "\\sin",
+      "=",
+      "\\cos"
+     ]
+    },
+    {
+     "front": "sin60°、cos60°、tan60° 分别等于多少？",
+     "back": "$\\sin60° = \\sqrt{3}/2$，$\\cos60° = 1/2$，$\\tan60° = \\sqrt{3}$",
+     "hint": "sin 和 cos 的值与 30° 正好对调",
+     "keep": [
+      "\\sin",
+      "=",
+      "\\sqrt"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "诱导公式",
+   "cards": [
+    {
+     "front": "sin(π − θ) 和 cos(π − θ) 等于什么？",
+     "back": "$\\sin(\\pi - \\theta) = \\sin\\theta$，$\\cos(\\pi - \\theta) = -\\cos\\theta$",
+     "hint": "sin 不变号，cos 变号",
+     "keep": [
+      "=",
+      "\\sin"
+     ]
+    },
+    {
+     "front": "sin(−θ) 和 cos(−θ) 等于什么？",
+     "back": "$\\sin(-\\theta) = -\\sin\\theta$，$\\cos(-\\theta) = \\cos\\theta$",
+     "hint": "sin 是奇函数，cos 是偶函数",
+     "keep": [
+      "\\sin",
+      "-",
+      "="
+     ]
+    },
+    {
+     "front": "sin(π/2 − θ) 和 cos(π/2 − θ) 等于什么？",
+     "back": "$\\sin(\\pi/2 - \\theta) = \\cos\\theta$，$\\cos(\\pi/2 - \\theta) = \\sin\\theta$",
+     "hint": "互余公式，sin 和 cos 互换",
+     "keep": [
+      "=",
+      "\\cos"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "和角公式与二倍角",
+   "cards": [
+    {
+     "front": "sin(α + β) 的展开公式是什么？",
+     "back": "$\\sin(\\alpha+\\beta) = \\sin\\alpha\\cos\\beta + \\cos\\alpha\\sin\\beta$",
+     "hint": "口诀：sin·cos + cos·sin",
+     "keep": [
+      "\\sin",
+      "+",
+      "=",
+      "\\cos"
+     ]
+    },
+    {
+     "front": "cos(α + β) 的展开公式是什么？",
+     "back": "$\\cos(\\alpha+\\beta) = \\cos\\alpha\\cos\\beta - \\sin\\alpha\\sin\\beta$",
+     "hint": "口诀：cos·cos − sin·sin",
+     "keep": [
+      "\\cos",
+      "+",
+      "=",
+      "-",
+      "\\sin"
+     ]
+    },
+    {
+     "front": "二倍角公式 sin2α 和 cos2α 是什么？",
+     "back": "$\\sin2\\alpha = 2\\sin\\alpha\\cos\\alpha$，$\\cos2\\alpha = \\cos^2\\alpha - \\sin^2\\alpha$",
+     "hint": "把和角公式里的 β 换成 α 就得到 sin2α",
+     "keep": [
+      "\\sin",
+      "=",
+      "\\cos"
+     ]
+    }
+   ]
+  }
+ ]
+}
